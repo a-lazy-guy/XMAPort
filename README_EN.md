@@ -103,7 +103,11 @@ All settings live in `config.ini` (GBK/ANSI encoding):
 
 Put the source / base ROM direct links under `[source]` / `[target]` — **leave a URL empty to skip downloading and use local archives in the corresponding download directory; reuse the previous workspace only if no local archive exists**. `[settings]` controls aria2c's `threads`, `max-connection` (hard limit 16 in official aria2), `timeout` and whole-run `retry` (`0` = single attempt, no retries).
 
-For local packages, place the source full recovery ROM in `workspace/download_source/` and the target base ROM in `workspace/download_target/`, clear the corresponding `url`, and run normally. Each side can independently use a local package or a download URL. Archives extracted in this run have their payload extracted again even when payload images already exist. Keep only the intended package in each download directory.
+For local packages, place the source full recovery ROM in `workspace/download_source/` and the target base ROM in `workspace/download_target/`, clear the corresponding `url`, and run normally. Each side can independently use a local package or a URL. A local download directory must contain exactly one archive; multiple archives cause an error instead of being merged. Online downloads use a stable URL-derived filename and only that archive is extracted; other downloaded files are retained.
+
+A side supplied with an archive rebuilds its ROM and payload directories. A side with neither a URL nor a local archive reuses existing partition images, or extracts them from the existing ROM directory if insufficient. Failed/interrupted extraction leaves an `.incomplete` marker; provide an archive to rebuild before reusing that side.
+
+Before migration, both filesystem trees are freshly extracted from the selected images, removing previous patches and generated permission/SELinux metadata. **Manual edits in those filesystem trees are discarded.** Only `config/fs_special.conf` and `config/fc_special.conf` custom rules are retained on each side. Downloads, project configuration, device configuration and historical logs are retained. Cleanup failures abort the workflow. Menu `[D]` still deletes only the listed images, payloads and device configuration, rather than resetting the entire workspace.
 
 ### Packing settings (`[packing]`)
 

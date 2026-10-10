@@ -114,7 +114,11 @@ python XMAPort.py --auto --device sky --source https://.../source-rom-full.zip -
 
 `[source]` / `[target]` 填写源 / 底包 ROM 直链，**留空 = 不下载，优先解压对应下载目录中的本地包，没有本地包时复用上次工作区**；`[settings]` 控制 aria2c 的下载线程数（`threads`）、最大连接数（`max-connection`，官方 aria2 上限 16）、超时（`timeout`）与整体重试次数（`retry`，`0` = 只下载一次不重试）。
 
-本地包使用方法：将源完整卡刷包放入 `workspace/download_source/`，目标底包放入 `workspace/download_target/`，清空对应 `[source]` / `[target]` 的 `url` 后照常运行。两侧可独立选择本地包或直链下载。本次解压的包会重新提取 payload，不会因已有 payload 镜像而跳过。每个下载目录建议只保留本次需要的一个包。
+本地包使用方法：将源完整卡刷包放入 `workspace/download_source/`，目标底包放入 `workspace/download_target/`，清空对应 `[source]` / `[target]` 的 `url` 后照常运行。两侧可独立选择本地包或直链下载。链接留空时，每个下载目录只能有一个包；多个包会报错，不会合并解压。直链下载使用按 URL 生成的固定文件名，并只处理本次对应的包，其他下载文件保留。
+
+本次提供包的一侧会重新创建 ROM 解压目录及 payload 镜像目录。没有链接也没有本地包的一侧复用已有镜像；镜像不足时尝试从已有 ROM 目录提取。解包失败或被中断的一侧会留下 `.incomplete` 标记，必须提供包重新解包后才能复用。
+
+每次进入迁移前，两侧文件系统都会从选定的镜像重新解包，旧文件、旧补丁和自动生成的权限/SELinux 元数据会清除。**文件系统目录中的手动修改不会保留**；只有各自 `config/fs_special.conf` 和 `config/fc_special.conf` 自定义规则保留。下载包、项目 `config.ini`、设备配置及历史日志保留。清理失败时停止流程。菜单 `[D]` 仍仅删除提示列出的镜像、payload 和设备配置，不是整个工作区重置。
 
 ### 打包设置（`[packing]`）
 
