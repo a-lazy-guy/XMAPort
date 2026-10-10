@@ -81,7 +81,7 @@ python XMAPort.py --auto --device sky --source https://.../source-rom-full.zip -
 ```
 
 - `--device`：目标设备代号（仅允许字母、数字、下划线、连字符）
-- `--source`：源机型 ROM 完整包直链（不能以 `ultimateota` 开头；**留空可复用上次工作区数据**）
+- `--source`：源机型 ROM 完整包直链（不能以 `ultimateota` 开头；**留空可使用本地包，没有本地包时复用上次工作区数据**）
 - `--target`：目标底包 ROM 完整包直链（不能以 `ultimateota` 开头；留空同上）
 
 > 注意：使用前请先按 [配置说明](#配置说明) 检查 `config.ini`，特别是 `device_platform` 与 `device_size`。
@@ -112,7 +112,9 @@ python XMAPort.py --auto --device sky --source https://.../source-rom-full.zip -
 
 ### 下载设置
 
-`[source]` / `[target]` 填写源 / 底包 ROM 直链，**留空 = 不下载，复用上次工作区**；`[settings]` 控制 aria2c 的下载线程数（`threads`）、最大连接数（`max-connection`，官方 aria2 上限 16）、超时（`timeout`）与整体重试次数（`retry`，`0` = 只下载一次不重试）。
+`[source]` / `[target]` 填写源 / 底包 ROM 直链，**留空 = 不下载，优先解压对应下载目录中的本地包，没有本地包时复用上次工作区**；`[settings]` 控制 aria2c 的下载线程数（`threads`）、最大连接数（`max-connection`，官方 aria2 上限 16）、超时（`timeout`）与整体重试次数（`retry`，`0` = 只下载一次不重试）。
+
+本地包使用方法：将源完整卡刷包放入 `workspace/download_source/`，目标底包放入 `workspace/download_target/`，清空对应 `[source]` / `[target]` 的 `url` 后照常运行。两侧可独立选择本地包或直链下载。本次解压的包会重新提取 payload，不会因已有 payload 镜像而跳过。每个下载目录建议只保留本次需要的一个包。
 
 ### 打包设置（`[packing]`）
 

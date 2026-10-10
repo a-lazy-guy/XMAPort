@@ -415,11 +415,13 @@ device_platform=Qualcomm
 [source]
 ; Source ROM download URL (direct URL, must not start with ultimateota)
 ; Used to extract system / system_ext / product / mi_ext partitions
+; Empty URL: use local archives in workspace/download_source, otherwise reuse workspace
 url=https://bkt-sgp-miui-ota-update-alisgp.oss-ap-southeast-1.aliyuncs.com/OS4.0.0.15.XPACNXM/nezha-ota_full-OS4.0.0.15.XPACNXM-user-17.0-87b65524dc.zip
 
 [target]
 ; Base ROM download URL (direct URL, must not start with ultimateota)
 ; Used to extract odm / vendor target partitions
+; Empty URL: use local archives in workspace/download_target, otherwise reuse workspace
 url=https://bkt-sgp-miui-ota-update-alisgp.oss-ap-southeast-1.aliyuncs.com/OS2.0.204.0.VMWCNXM/sky-ota_full-OS2.0.204.0.VMWCNXM-user-15.0-5b8f723fe7.zip
 
 [settings]
@@ -679,12 +681,20 @@ def download_roms(jobs):
 
 
 # ---------------- Step 2 解包 ----------------
+ARCHIVE_PATTERNS = ("*.zip", "*.tar", "*.gz", "*.tgz", "*.7z", "*.rar")
+
+
+def has_local_archive(src_dir):
+    return any(f.is_file() for pattern in ARCHIVE_PATTERNS
+               for f in Path(src_dir).glob(pattern))
+
+
 def extract_archive(src_dir, out_dir, label):
     src_dir = Path(src_dir)
     os.makedirs(out_dir, exist_ok=True)
     count = 0
     fail = 0
-    for ext in ["*.zip", "*.tar", "*.gz", "*.tgz", "*.7z", "*.rar"]:
+    for ext in ARCHIVE_PATTERNS:
         for f in sorted(src_dir.glob(ext)):
             count += 1
             info("Processing: {}".format(f.name))
@@ -1168,18 +1178,20 @@ def one_click_port(auto=False):
     log_write("Step 1: Download ROM done")
 
     # ---------------- Step 2: 解压 ----------------
-    # URL 留空 = 复用上次工作区（设计如此）：无归档可解压时跳过而非报错；
-    # URL 有值时下载必然产生了新归档，解压失败才算真失败。
+    # URL 留空时优先解压下载目录中的本地包；没有本地包才复用工作区。
+    # 本次解压了归档时重新提取 payload，避免跳过用户提供的新包。
     info("=== Step 2/7: Extract archives ===")
     log_write("Step 2: Extract archives start")
-    if SRC_URL:
+    source_archive_ready = bool(SRC_URL) or has_local_archive(SRC_DL)
+    target_archive_ready = bool(TGT_URL) or has_local_archive(TGT_DL)
+    if source_archive_ready:
         info("[1/2] Extracting source archive...")
         if extract_archive(SRC_DL, SRC_ROM, "Source") != 0:
             return _abort_port(auto, "Step 2 failed: source archive extraction")
     else:
         info("[1/2] SRC_URL empty, reusing existing source workspace")
         log_write("Step 2: SRC_URL empty, reuse source workspace")
-    if TGT_URL:
+    if target_archive_ready:
         info("[2/2] Extracting target archive...")
         if extract_archive(TGT_DL, TGT_ROM, "Target") != 0:
             return _abort_port(auto, "Step 2 failed: target archive extraction")
@@ -1192,12 +1204,12 @@ def one_click_port(auto=False):
     # ---------------- Step 3: 解包 payload ----------------
     info("=== Step 3/7: Extract payload ===")
     log_write("Step 3: Extract payload start")
-    if not check_payload_extracted(SRC_UNPACK):
+    if source_archive_ready or not check_payload_extracted(SRC_UNPACK):
         info("[1/2] Extracting source payload...")
         if extract_payload_bin(SRC_ROM, SRC_UNPACK) != 0:
             return _abort_port(auto, "Step 3 failed: source payload extraction")
         log_write("Source payload extracted to: {}".format(SRC_UNPACK))
-    if not check_payload_extracted(TGT_UNPACK):
+    if target_archive_ready or not check_payload_extracted(TGT_UNPACK):
         info("[2/2] Extracting target payload...")
         if extract_payload_bin(TGT_ROM, TGT_UNPACK) != 0:
             return _abort_port(auto, "Step 3 failed: target payload extraction")
